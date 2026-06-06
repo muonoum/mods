@@ -7,8 +7,9 @@ import gleam/json
 import gleam/list
 import gleam/option
 import gleam/uri
-import mods/config
 import muon/extra_erlang/httpc
+
+const updates_uri = "https://api.modrinth.com/v2/version_files/update"
 
 type Version {
   UpdateResponse(version_type: String, files: List(File))
@@ -19,7 +20,7 @@ pub type File {
 }
 
 pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
-  let assert Ok(uri) = uri.parse(config.updates_uri)
+  let assert Ok(uri) = uri.parse(updates_uri)
   let assert Ok(request) = request.from_uri(uri)
 
   let config =
