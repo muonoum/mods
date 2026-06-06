@@ -15,7 +15,7 @@ type Version {
 }
 
 pub type File {
-  File(url: String, filename: String, hash: String)
+  File(uri: String, filename: String, hash: String)
 }
 
 pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
@@ -56,8 +56,8 @@ fn version_decoder() -> Decoder(Version) {
 }
 
 fn file_decoder() -> Decoder(File) {
-  use url <- decode.field("url", decode.string)
+  use uri <- decode.field("url", decode.string)
   use filename <- decode.field("filename", decode.string)
   use hash <- decode.subfield(["hashes", "sha1"], decode.string)
-  decode.success(File(filename:, url:, hash:))
+  decode.success(File(filename:, uri:, hash:))
 }

@@ -37,7 +37,7 @@ pub fn main() -> Nil {
   use file <- list.each(updates)
 
   filepath.join(destination, file.filename)
-  |> output(mode, file.url, _)
+  |> output(mode:, uri: file.uri, path: _)
   |> io.println
 }
 
