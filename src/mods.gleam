@@ -71,13 +71,11 @@ fn launcher_filename(
   <> ".jar"
 }
 
-fn loader_uri(game_version: String) -> Result(Uri, Nil) {
-  uri.parse("https://meta.fabricmc.net/v2/versions/loader/" <> game_version)
+fn loader_uri(game_version: String) -> String {
+  "https://meta.fabricmc.net/v2/versions/loader/" <> game_version
 }
 
-fn installer_uri() -> Result(Uri, Nil) {
-  uri.parse("https://meta.fabricmc.net/v2/versions/installer")
-}
+const installer_uri = "https://meta.fabricmc.net/v2/versions/installer"
 
 fn launcher_uri(
   game: String,
@@ -91,9 +89,7 @@ fn launcher_uri(
   )
 }
 
-fn updates_uri() -> String {
-  "https://api.modrinth.com/v2/version_files/update"
-}
+const updates_uri = "https://api.modrinth.com/v2/version_files/update"
 
 fn output(mode mode: String, uri uri: String, path path: String) -> String {
   case mode {
@@ -119,10 +115,9 @@ fn file_decoder() -> Decoder(File) {
 fn updates_request(
   hashes: List(String),
   version: String,
-) -> Result(Request(Option(BytesTree)), Nil) {
-  use uri <- result.try(uri.parse(updates_uri()))
-
-  use request <- result.map(request.from_uri(uri))
+) -> Request(Option(BytesTree)) {
+  let assert Ok(uri) = uri.parse(updates_uri)
+  let assert Ok(request) = request.from_uri(uri)
 
   let config =
     json.object([
@@ -150,7 +145,7 @@ fn get_hash(path: String) -> String {
 }
 
 fn get_loader(game_version: String) -> String {
-  let assert Ok(uri) = loader_uri(game_version)
+  let assert Ok(uri) = uri.parse(loader_uri(game_version))
 
   let assert Ok(request) =
     request.from_uri(uri)
@@ -166,7 +161,7 @@ fn get_loader(game_version: String) -> String {
 }
 
 fn get_installer() -> String {
-  let assert Ok(uri) = installer_uri()
+  let assert Ok(uri) = uri.parse(installer_uri)
 
   let assert Ok(request) =
     request.from_uri(uri)
@@ -182,8 +177,9 @@ fn get_installer() -> String {
 }
 
 fn get_updates(hashes: List(String), game_version: String) -> List(File) {
-  let assert Ok(request) = updates_request(hashes, game_version)
-  let assert Ok(response) = httpc.send(request, [])
+  let assert Ok(response) =
+    updates_request(hashes, game_version)
+    |> httpc.send([])
 
   let assert Ok(updates) =
     decode.dict(decode.string, version_decoder())
