@@ -27,39 +27,32 @@ type File {
 }
 
 pub fn main() -> Nil {
-  let assert [mode, game, source, destination] = argv.load().arguments
+  let assert [mode, game_version, source, destination] = argv.load().arguments
 
-  let assert Ok(loader) = get_loader(game)
-  let assert Ok(installer) = get_installer()
-  let assert Ok(launcher_uri) = launcher_uri(game, loader, installer)
+  let loader_version = get_loader(game_version)
+  let installer_version = get_installer()
 
-  io.println(download(
+  let assert Ok(launcher_uri) =
+    launcher_uri(game_version, loader_version, installer_version)
+
+  io.println(output(
     mode,
     uri.to_string(launcher_uri),
-    filepath.join(destination, launcher_filename(game, loader, installer)),
+    filepath.join(
+      destination,
+      launcher_filename(game_version, loader_version, installer_version),
+    ),
   ))
 
   let hashes = {
     use name <- list.map(path.wildcard(source, "*.jar"))
-    let path = filepath.join(source, name)
-    let assert Ok(hash) = get_hash(path)
-    hash
+    get_hash(filepath.join(source, name))
   }
 
-  let assert Ok(updates_request) = updates_request(hashes, game)
-  let assert Ok(updates_response) = httpc.send(updates_request, [])
-
-  let assert Ok(updates) =
-    json.parse_bits(
-      updates_response.body,
-      decode.dict(decode.string, version_decoder()),
-    )
-
-  use version <- list.each(dict.values(updates))
-  use file <- list.each(version.files)
+  use file <- list.each(get_updates(hashes, game_version))
 
   filepath.join(destination, file.filename)
-  |> download(mode, file.url, _)
+  |> output(mode, file.url, _)
   |> io.println
 }
 
@@ -95,11 +88,11 @@ fn launcher_uri(
   )
 }
 
-fn updates_uri() -> Result(Uri, Nil) {
-  uri.parse("https://api.modrinth.com/v2/version_files/update")
+fn updates_uri() -> String {
+  "https://api.modrinth.com/v2/version_files/update"
 }
 
-fn download(mode: String, url: String, path: String) -> String {
+fn output(mode: String, url: String, path: String) -> String {
   case mode {
     "curl" -> "curl -L " <> url <> " > " <> path
     "list" -> url <> "," <> path
@@ -124,12 +117,20 @@ fn updates_request(
   hashes: List(String),
   version: String,
 ) -> Result(Request(Option(BytesTree)), Nil) {
-  use uri <- result.try(updates_uri())
+  use uri <- result.try(uri.parse(updates_uri()))
+
   use request <- result.map(request.from_uri(uri))
 
+  let config =
+    json.object([
+      #("algorithm", json.string("sha1")),
+      #("hashes", json.array(hashes, json.string)),
+      #("loaders", json.preprocessed_array([json.string("fabric")])),
+      #("game_versions", json.preprocessed_array([json.string(version)])),
+    ])
+
   let body =
-    updates_arguments(hashes, version)
-    |> json.to_string_tree
+    json.to_string_tree(config)
     |> bytes_tree.from_string_tree
 
   request.set_method(request, http.Post)
@@ -137,24 +138,15 @@ fn updates_request(
   |> request.set_body(option.Some(body))
 }
 
-fn updates_arguments(hashes: List(String), version: String) -> json.Json {
-  json.object([
-    #("algorithm", json.string("sha1")),
-    #("hashes", json.array(hashes, json.string)),
-    #("loaders", json.preprocessed_array([json.string("fabric")])),
-    #("game_versions", json.preprocessed_array([json.string(version)])),
-  ])
-}
-
-fn get_hash(path: String) -> Result(String, simplifile.FileError) {
-  use bits <- result.map(simplifile.read_bits(path))
+fn get_hash(path: String) -> String {
+  let assert Ok(bits) = simplifile.read_bits(path)
 
   crypto.hash(crypto.Sha1, bits)
   |> bit_array.base16_encode
   |> string.lowercase
 }
 
-fn get_loader(game_version: String) -> Result(String, json.DecodeError) {
+fn get_loader(game_version: String) -> String {
   let assert Ok(uri) = loader_uri(game_version)
 
   let assert Ok(request) =
@@ -163,13 +155,14 @@ fn get_loader(game_version: String) -> Result(String, json.DecodeError) {
 
   let assert Ok(response) = httpc.send(request, [])
 
-  json.parse_bits(
-    response.body,
-    decode.at([0], decode.at(["loader", "version"], decode.string)),
-  )
+  let assert Ok(loader) =
+    decode.at([0], decode.at(["loader", "version"], decode.string))
+    |> json.parse_bits(response.body, _)
+
+  loader
 }
 
-fn get_installer() -> Result(String, json.DecodeError) {
+fn get_installer() -> String {
   let assert Ok(uri) = installer_uri()
 
   let assert Ok(request) =
@@ -178,8 +171,21 @@ fn get_installer() -> Result(String, json.DecodeError) {
 
   let assert Ok(response) = httpc.send(request, [])
 
-  json.parse_bits(
-    response.body,
-    decode.at([0], decode.at(["version"], decode.string)),
-  )
+  let assert Ok(installer) =
+    decode.at([0], decode.at(["version"], decode.string))
+    |> json.parse_bits(response.body, _)
+
+  installer
+}
+
+fn get_updates(hashes: List(String), game_version: String) -> List(File) {
+  let assert Ok(request) = updates_request(hashes, game_version)
+  let assert Ok(response) = httpc.send(request, [])
+
+  let assert Ok(updates) =
+    decode.dict(decode.string, version_decoder())
+    |> json.parse_bits(response.body, _)
+
+  use version <- list.flat_map(dict.values(updates))
+  version.files
 }
