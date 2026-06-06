@@ -10,7 +10,7 @@ import gleam/uri
 import mods/config
 import muon/extra_erlang/httpc
 
-pub type Version {
+type Version {
   UpdateResponse(version_type: String, files: List(File))
 }
 

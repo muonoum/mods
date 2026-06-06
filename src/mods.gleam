@@ -6,7 +6,6 @@ import gleam/io
 import gleam/list
 import gleam/string
 import gleam/uri
-import mods/config
 import mods/fabric
 import mods/modrinth
 import muon/extra_erlang/path
@@ -14,15 +13,7 @@ import simplifile
 
 pub fn main() -> Nil {
   let assert [mode, game_version, source, destination] = argv.load().arguments
-  let loader_version = fabric.get_loader(game_version)
-  let installer_version = fabric.get_installer()
-
-  let assert Ok(launcher_uri) =
-    config.launcher_uri(game_version, loader_version, installer_version)
-    |> uri.parse
-
-  let launcher =
-    config.launcher_filename(game_version, loader_version, installer_version)
+  let #(launcher_uri, launcher_filename) = fabric.get_launcher(game_version)
 
   let hashes = {
     use name <- list.map(path.wildcard(source, "*.jar"))
@@ -39,7 +30,7 @@ pub fn main() -> Nil {
     output(
       mode:,
       uri: uri.to_string(launcher_uri),
-      path: filepath.join(destination, launcher),
+      path: filepath.join(destination, launcher_filename),
     )
   })
 
