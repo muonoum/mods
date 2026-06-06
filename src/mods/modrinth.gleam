@@ -31,14 +31,13 @@ pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
       #("game_versions", json.preprocessed_array([json.string(game_version)])),
     ])
 
-  let body =
-    json.to_string_tree(config)
-    |> bytes_tree.from_string_tree
-
   let request =
     request.set_method(request, http.Post)
     |> request.set_header("content-type", "application/json")
-    |> request.set_body(option.Some(body))
+    |> request.set_body(option.Some(
+      json.to_string_tree(config)
+      |> bytes_tree.from_string_tree,
+    ))
 
   let assert Ok(response) = httpc.send(request, [])
 
