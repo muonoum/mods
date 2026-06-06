@@ -27,13 +27,14 @@ type File {
 }
 
 pub fn main() -> Nil {
-  let assert [game, source, destination] = argv.load().arguments
+  let assert [mode, game, source, destination] = argv.load().arguments
 
   let assert Ok(loader) = get_loader(game)
   let assert Ok(installer) = get_installer()
   let assert Ok(launcher_uri) = launcher_uri(game, loader, installer)
 
   io.println(download(
+    mode,
     uri.to_string(launcher_uri),
     filepath.join(destination, launcher_filename(game, loader, installer)),
   ))
@@ -58,7 +59,7 @@ pub fn main() -> Nil {
   use file <- list.each(version.files)
 
   filepath.join(destination, file.filename)
-  |> download(file.url, _)
+  |> download(mode, file.url, _)
   |> io.println
 }
 
@@ -98,9 +99,12 @@ fn updates_uri() -> Result(Uri, Nil) {
   uri.parse("https://api.modrinth.com/v2/version_files/update")
 }
 
-fn download(url: String, path: String) -> String {
-  // "curl -L " <> url <> " > " <> path
-  url <> "," <> path
+fn download(mode: String, url: String, path: String) -> String {
+  case mode {
+    "curl" -> "curl -L " <> url <> " > " <> path
+    "list" -> url <> "," <> path
+    _else -> panic as "mode"
+  }
 }
 
 fn version_decoder() -> Decoder(Version) {
