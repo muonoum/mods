@@ -6,6 +6,7 @@ import gleam/http/request
 import gleam/json
 import gleam/list
 import gleam/option
+import gleam/result
 import gleam/uri
 import muon/extra_erlang/httpc
 
@@ -14,24 +15,26 @@ pub type File {
 }
 
 pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
-  let assert Ok(uri) = uri.parse(updates_uri)
-  let assert Ok(request) = request.from_uri(uri)
+  let request = {
+    let assert Ok(request) =
+      uri.parse(updates_uri)
+      |> result.try(request.from_uri)
 
-  let config =
-    json.object([
-      #("algorithm", json.string("sha1")),
-      #("hashes", json.array(hashes, json.string)),
-      #("loaders", json.preprocessed_array([json.string("fabric")])),
-      #("game_versions", json.preprocessed_array([json.string(game_version)])),
-    ])
+    let config =
+      json.object([
+        #("algorithm", json.string("sha1")),
+        #("hashes", json.array(hashes, json.string)),
+        #("loaders", json.preprocessed_array([json.string("fabric")])),
+        #("game_versions", json.preprocessed_array([json.string(game_version)])),
+      ])
 
-  let request =
     request.set_method(request, http.Post)
     |> request.set_header("content-type", "application/json")
     |> request.set_body(option.Some(
       json.to_string_tree(config)
       |> bytes_tree.from_string_tree,
     ))
+  }
 
   let assert Ok(response) = httpc.send(request, [])
 
