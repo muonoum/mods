@@ -7,6 +7,20 @@ import gleam/string
 import gleam/uri.{type Uri}
 import muon/extra_erlang/httpc
 
+pub fn get_launcher(game_version: String) -> #(Uri, String) {
+  let loader_version = get_loader(game_version)
+  let installer_version = get_installer()
+
+  let assert Ok(uri) =
+    launcher_uri(game_version, loader_version, installer_version)
+    |> uri.parse
+
+  let filename =
+    launcher_filename(game_version, loader_version, installer_version)
+
+  #(uri, filename)
+}
+
 const installer_uri = "https://meta.fabricmc.net/v2/versions/installer"
 
 fn loader_uri(game_version: String) -> String {
@@ -27,20 +41,6 @@ fn launcher_filename(
 fn launcher_uri(game: String, loader: String, installer: String) -> String {
   let path = string.join([game, loader, installer], "/")
   "https://meta.fabricmc.net/v2/versions/loader/" <> path <> "/server/jar"
-}
-
-pub fn get_launcher(game_version: String) -> #(Uri, String) {
-  let loader_version = get_loader(game_version)
-  let installer_version = get_installer()
-
-  let assert Ok(uri) =
-    launcher_uri(game_version, loader_version, installer_version)
-    |> uri.parse
-
-  let filename =
-    launcher_filename(game_version, loader_version, installer_version)
-
-  #(uri, filename)
 }
 
 fn get_loader(game_version: String) -> String {
