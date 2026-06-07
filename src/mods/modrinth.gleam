@@ -9,12 +9,6 @@ import gleam/option
 import gleam/uri
 import muon/extra_erlang/httpc
 
-const updates_uri = "https://api.modrinth.com/v2/version_files/update"
-
-type Version {
-  UpdateResponse(version_type: String, files: List(File))
-}
-
 pub type File {
   File(uri: String, filename: String, hash: String)
 }
@@ -47,6 +41,12 @@ pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
 
   use version <- list.flat_map(dict.values(updates))
   version.files
+}
+
+const updates_uri = "https://api.modrinth.com/v2/version_files/update"
+
+type Version {
+  UpdateResponse(version_type: String, files: List(File))
 }
 
 fn version_decoder() -> Decoder(Version) {
