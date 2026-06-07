@@ -34,10 +34,10 @@ pub fn main() -> Nil {
     )
   })
 
-  use file <- list.each(updates)
+  use update <- list.each(updates)
 
-  filepath.join(destination, file.filename)
-  |> output(mode:, uri: file.uri, path: _)
+  filepath.join(destination, update.filename)
+  |> output(mode:, uri: update.uri, path: _)
   |> io.println
 }
 
