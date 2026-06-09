@@ -1,10 +1,9 @@
 import gleam/bytes_tree
-import gleam/dict
+import gleam/dict.{type Dict}
 import gleam/dynamic/decode.{type Decoder}
 import gleam/http
 import gleam/http/request
 import gleam/json
-import gleam/list
 import gleam/option
 import gleam/result
 import gleam/uri
@@ -14,7 +13,10 @@ pub type File {
   File(uri: String, filename: String, hash: String)
 }
 
-pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
+pub fn get_updates(
+  hashes: List(String),
+  game_version: String,
+) -> Dict(String, List(File)) {
   let request = {
     let assert Ok(request) =
       uri.parse(updates_uri)
@@ -42,7 +44,7 @@ pub fn get_updates(hashes: List(String), game_version: String) -> List(File) {
     decode.dict(decode.string, version_decoder())
     |> json.parse_bits(response.body, _)
 
-  use version <- list.flat_map(dict.values(updates))
+  use _hash, version <- dict.map_values(updates)
   version.files
 }
 
