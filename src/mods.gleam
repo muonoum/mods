@@ -52,15 +52,19 @@ fn updates(game_version game_version: String, source source: String) -> Nil {
   use #(hash, updates) <- list.each(dict.to_list(updates))
   let assert Ok(original) = dict.get(files, hash)
   use update <- list.each(updates)
-  use <- bool.guard(hash == update.hash, Nil)
 
-  io.println(
-    ansi.grey(original)
-    <> " "
-    <> ansi.green(update.filename)
-    <> " "
-    <> update.uri,
-  )
+  case hash == update.hash {
+    True -> io.println(ansi.green(original))
+
+    False ->
+      io.println(
+        ansi.grey(original)
+        <> " "
+        <> ansi.green(update.filename)
+        <> " "
+        <> update.uri,
+      )
+  }
 }
 
 fn downloads(
