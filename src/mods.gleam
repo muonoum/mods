@@ -43,7 +43,7 @@ fn list(version version: String, directory directory: String) -> Nil {
   use status <- list.each(get_updates(version:, directory:))
 
   io.println(case status {
-    NotFound(name) -> ansi.gray(name)
+    NotFound(name) -> ansi.grey(name)
     UpToDate(name) -> ansi.green(name)
     Updated(name, update) ->
       [ansi.grey(name), ansi.green(update.filename), update.uri]
@@ -55,7 +55,7 @@ fn update(version version: String, directory directory: String) -> Nil {
   use status <- list.each(get_updates(version:, directory:))
 
   io.println(case status {
-    NotFound(name) -> ansi.gray(name)
+    NotFound(name) -> ansi.grey(name)
     UpToDate(name) -> ansi.green(name)
 
     Updated(name, update) -> {
