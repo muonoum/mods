@@ -24,7 +24,7 @@ type Status {
 pub fn main() -> Nil {
   case argv.load().arguments {
     ["launcher", version] -> launcher(version)
-    ["list", version, directory] -> list(version:, directory: directory)
+    ["list", version, directory] -> list(version:, directory:)
     ["update", version, directory] -> update(version:, directory:)
     _else -> panic
   }
