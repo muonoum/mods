@@ -4,14 +4,18 @@ import gleam/bit_array
 import gleam/bool
 import gleam/crypto
 import gleam/dict
+import gleam/http/request
 import gleam/io
 import gleam/list
+import gleam/option
 import gleam/pair
+import gleam/result
 import gleam/string
 import gleam/uri
 import gleam_community/ansi
 import mods/fabric
 import mods/modrinth
+import muon/extra_erlang/httpc
 import muon/extra_erlang/path
 import simplifile
 
@@ -55,8 +59,22 @@ fn update(version version: String, directory directory: String) -> Nil {
     UpToDate(name) -> ansi.green(name)
 
     Updated(name, update) -> {
-      // TODO: Update
-      [ansi.grey(name), ansi.green(update.filename), update.uri]
+      let assert Ok(uri) = uri.parse(update.uri)
+
+      let assert Ok(request) =
+        request.from_uri(uri)
+        |> result.map(request.set_body(_, option.None))
+
+      let assert Ok(response) = httpc.send(request, [])
+
+      let assert Ok(Nil) =
+        filepath.join(directory, update.filename)
+        |> simplifile.write_bits(response.body)
+
+      let assert Ok(Nil) =
+        simplifile.delete_file(filepath.join(directory, name))
+
+      [ansi.grey(name), ansi.green(update.filename)]
       |> string.join(" ")
     }
   })
