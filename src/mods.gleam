@@ -59,13 +59,13 @@ fn update(version version: String, directory directory: String) -> Nil {
     UpToDate(name) -> ansi.green(name)
 
     Updated(name, update) -> {
-      let assert Ok(uri) = uri.parse(update.uri)
-
       let assert Ok(request) =
-        request.from_uri(uri)
-        |> result.map(request.set_body(_, option.None))
+        uri.parse(update.uri)
+        |> result.try(request.from_uri)
 
-      let assert Ok(response) = httpc.send(request, [])
+      let assert Ok(response) =
+        request.set_body(request, option.None)
+        |> httpc.send([])
 
       let assert Ok(Nil) =
         filepath.join(directory, update.filename)
