@@ -101,9 +101,9 @@ fn get_updates(
     |> modrinth.get_updates(version)
 
   let updates = {
-    use #(hash, updates) <- list.flat_map(dict.to_list(updated))
+    use #(hash, files) <- list.flat_map(dict.to_list(updated))
     let assert Ok(original) = dict.get(existing, hash)
-    use file <- list.map(updates)
+    use file <- list.map(files)
 
     case hash == file.hash {
       True -> UpToDate(original)
