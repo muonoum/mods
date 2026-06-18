@@ -87,7 +87,8 @@ fn get_updates(
   let existing =
     dict.from_list({
       use name <- list.map(path.wildcard(directory, "*.jar"))
-      let assert Ok(bits) = simplifile.read_bits(filepath.join(directory, name))
+      let path = filepath.join(directory, name)
+      let assert Ok(bits) = simplifile.read_bits(path)
 
       crypto.hash(crypto.Sha1, bits)
       |> bit_array.base16_encode
