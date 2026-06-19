@@ -57,6 +57,7 @@ fn list(version version: String, directory directory: String) -> Nil {
   io.println(case status {
     NotFound(name) -> ansi.grey(name)
     UpToDate(name) -> ansi.green(name)
+
     Updated(name, update) ->
       [ansi.grey(name), ansi.green(update.filename), update.uri]
       |> string.join(" ")
