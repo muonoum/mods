@@ -40,7 +40,26 @@ fn launcher(version: String) -> Nil {
 }
 
 fn list(version version: String, directory directory: String) -> Nil {
-  use status <- list.each(get_updates(version:, directory:))
+  let mods_directory = filepath.join(directory, "mods")
+
+  let assert [existing_launcher] =
+    path.wildcard(directory, "fabric-server-*.jar")
+
+  let #(launcher_uri, launcher_filename) = fabric.get_launcher(version)
+
+  io.println(case existing_launcher == launcher_filename {
+    True -> ansi.cyan(existing_launcher)
+
+    False ->
+      [
+        ansi.grey(existing_launcher),
+        ansi.cyan(launcher_filename),
+        uri.to_string(launcher_uri),
+      ]
+      |> string.join(" ")
+  })
+
+  use status <- list.each(get_updates(version:, directory: mods_directory))
 
   io.println(case status {
     NotFound(name) -> ansi.grey(name)
@@ -52,7 +71,33 @@ fn list(version version: String, directory directory: String) -> Nil {
 }
 
 fn update(version version: String, directory directory: String) -> Nil {
-  use status <- list.each(get_updates(version:, directory:))
+  let assert [existing_launcher] =
+    path.wildcard(directory, "fabric-server-*.jar")
+
+  let #(launcher_uri, launcher_filename) = fabric.get_launcher(version)
+
+  io.println(case existing_launcher == launcher_filename {
+    True -> ansi.cyan(existing_launcher)
+
+    False -> {
+      let assert Ok(request) = request.from_uri(launcher_uri)
+
+      let assert Ok(response) =
+        request.set_body(request, option.None)
+        |> httpc.send([])
+
+      let assert Ok(Nil) =
+        simplifile.write_bits(launcher_filename, response.body)
+
+      let assert Ok(Nil) = simplifile.delete_file(existing_launcher)
+
+      [ansi.grey(existing_launcher), ansi.green(launcher_filename)]
+      |> string.join(" ")
+    }
+  })
+
+  let mods_directory = filepath.join(directory, "mods")
+  use status <- list.each(get_updates(version:, directory: mods_directory))
 
   io.println(case status {
     NotFound(name) -> ansi.grey(name)
@@ -68,11 +113,11 @@ fn update(version version: String, directory directory: String) -> Nil {
         |> httpc.send([])
 
       let assert Ok(Nil) =
-        filepath.join(directory, update.filename)
+        filepath.join(mods_directory, update.filename)
         |> simplifile.write_bits(response.body)
 
       let assert Ok(Nil) =
-        simplifile.delete_file(filepath.join(directory, name))
+        simplifile.delete_file(filepath.join(mods_directory, name))
 
       [ansi.grey(name), ansi.green(update.filename)]
       |> string.join(" ")
