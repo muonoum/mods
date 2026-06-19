@@ -50,13 +50,12 @@ fn list(version version: String, directory directory: String) -> Nil {
   io.println(case existing_launcher == launcher_filename {
     True -> ansi.cyan(existing_launcher)
 
-    False ->
-      [
-        ansi.grey(existing_launcher),
-        ansi.cyan(launcher_filename),
-        uri.to_string(launcher_uri),
-      ]
+    False -> {
+      let uri = uri.to_string(launcher_uri)
+
+      [ansi.grey(existing_launcher), ansi.cyan(launcher_filename), uri]
       |> string.join(" ")
+    }
   })
 
   use status <- list.each(get_updates(version:, directory: mods_directory))
