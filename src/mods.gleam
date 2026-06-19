@@ -27,16 +27,10 @@ type Status {
 
 pub fn main() -> Nil {
   case argv.load().arguments {
-    ["launcher", version] -> launcher(version)
     ["list", version, directory] -> list(version:, directory:)
     ["update", version, directory] -> update(version:, directory:)
     _else -> panic
   }
-}
-
-fn launcher(version: String) -> Nil {
-  let #(launcher_uri, launcher_filename) = fabric.get_launcher(version)
-  io.println(launcher_filename <> " " <> uri.to_string(launcher_uri))
 }
 
 fn list(version version: String, directory directory: String) -> Nil {
