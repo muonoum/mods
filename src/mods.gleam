@@ -9,7 +9,6 @@ import gleam/io
 import gleam/list
 import gleam/option
 import gleam/pair
-import gleam/result
 import gleam/string
 import gleam/uri
 import gleam_community/ansi
@@ -34,88 +33,25 @@ pub fn main() -> Nil {
 }
 
 fn list(version version: String, directory directory: String) -> Nil {
-  let mods_directory = filepath.join(directory, "mods")
-
-  let assert [existing_launcher] =
-    path.wildcard(directory, "fabric-server-*.jar")
-
-  let #(launcher_uri, launcher_filename) = fabric.get_launcher(version)
-
-  io.println(case existing_launcher == launcher_filename {
-    True -> ansi.cyan(existing_launcher)
-
-    False -> {
-      let uri = uri.to_string(launcher_uri)
-
-      [ansi.grey(existing_launcher), ansi.cyan(launcher_filename), uri]
-      |> string.join(" ")
-    }
+  update_launcher(version:, directory:, on_update: fn(uri, from, to) {
+    string.join([ansi.grey(from), ansi.cyan(to), uri.to_string(uri)], " ")
   })
 
-  use status <- list.each(get_updates(version:, directory: mods_directory))
-
-  io.println(case status {
-    NotFound(name) -> ansi.grey(name)
-    UpToDate(name) -> ansi.green(name)
-
-    Updated(name, update) ->
-      [ansi.grey(name), ansi.green(update.filename), update.uri]
-      |> string.join(" ")
+  update_mods(version:, directory:, on_update: fn(uri, from, to) {
+    string.join([ansi.grey(from), ansi.green(to), uri], " ")
   })
 }
 
 fn update(version version: String, directory directory: String) -> Nil {
-  let assert [existing_launcher] =
-    path.wildcard(directory, "fabric-server-*.jar")
-
-  let #(launcher_uri, launcher_filename) = fabric.get_launcher(version)
-
-  io.println(case existing_launcher == launcher_filename {
-    True -> ansi.cyan(existing_launcher)
-
-    False -> {
-      let assert Ok(request) = request.from_uri(launcher_uri)
-
-      let assert Ok(response) =
-        request.set_body(request, option.None)
-        |> httpc.send([])
-
-      let assert Ok(Nil) =
-        simplifile.write_bits(launcher_filename, response.body)
-
-      let assert Ok(Nil) = simplifile.delete_file(existing_launcher)
-
-      [ansi.grey(existing_launcher), ansi.green(launcher_filename)]
-      |> string.join(" ")
-    }
+  update_launcher(version:, directory:, on_update: fn(uri, from, to) {
+    update_file(uri, from, to)
+    string.join([ansi.grey(from), ansi.green(from)], " ")
   })
 
-  let mods_directory = filepath.join(directory, "mods")
-  use status <- list.each(get_updates(version:, directory: mods_directory))
-
-  io.println(case status {
-    NotFound(name) -> ansi.grey(name)
-    UpToDate(name) -> ansi.green(name)
-
-    Updated(name, update) -> {
-      let assert Ok(request) =
-        uri.parse(update.uri)
-        |> result.try(request.from_uri)
-
-      let assert Ok(response) =
-        request.set_body(request, option.None)
-        |> httpc.send([])
-
-      let assert Ok(Nil) =
-        filepath.join(mods_directory, update.filename)
-        |> simplifile.write_bits(response.body)
-
-      let assert Ok(Nil) =
-        simplifile.delete_file(filepath.join(mods_directory, name))
-
-      [ansi.grey(name), ansi.green(update.filename)]
-      |> string.join(" ")
-    }
+  update_mods(version:, directory:, on_update: fn(uri, from, to) {
+    let assert Ok(uri) = uri.parse(uri)
+    update_file(uri, from, to)
+    string.join([ansi.grey(from), ansi.green(to)], " ")
   })
 }
 
@@ -153,4 +89,45 @@ fn get_updates(
   use updates, hash, name <- dict.fold(existing, updates)
   use <- bool.guard(dict.has_key(updated, hash), updates)
   [NotFound(name), ..updates]
+}
+
+fn update_file(uri: uri.Uri, from: String, to: String) -> Nil {
+  let assert Ok(request) = request.from_uri(uri)
+  let request = request.set_body(request, option.None)
+  let assert Ok(response) = httpc.send(request, [])
+  let assert Ok(Nil) = simplifile.write_bits(to, response.body)
+  let assert Ok(Nil) = simplifile.delete_file(from)
+  Nil
+}
+
+fn update_launcher(
+  version version: String,
+  directory directory: String,
+  on_update on_update: fn(uri.Uri, String, String) -> String,
+) -> Nil {
+  let assert [from] = path.wildcard(directory, "fabric-server-*.jar")
+  let #(uri, to) = fabric.get_launcher(version)
+
+  io.println(case from == to {
+    True -> ansi.cyan(from)
+    False -> on_update(uri, from, to)
+  })
+}
+
+fn update_mods(
+  version version: String,
+  directory directory: String,
+  on_update on_update: fn(String, String, String) -> String,
+) -> Nil {
+  let mods_directory = filepath.join(directory, "mods")
+  use status <- list.each(get_updates(version:, directory: mods_directory))
+
+  io.println(case status {
+    NotFound(from) -> ansi.grey(from)
+    UpToDate(from) -> ansi.green(from)
+
+    Updated(from, update) ->
+      filepath.join(mods_directory, update.filename)
+      |> on_update(update.uri, from, _)
+  })
 }
