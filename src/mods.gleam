@@ -34,10 +34,14 @@ pub fn main() -> Nil {
 
 fn list(version version: String, directory directory: String) -> Nil {
   update_launcher(version:, directory:, on_update: fn(uri, from, to) {
+    let from = filepath.base_name(from)
+    let to = filepath.base_name(to)
     ansi.grey(from) <> " " <> ansi.cyan(to) <> " " <> uri.to_string(uri)
   })
 
   update_mods(version:, directory:, on_update: fn(uri, from, to) {
+    let from = filepath.base_name(from)
+    let to = filepath.base_name(to)
     ansi.grey(from) <> " " <> ansi.green(to) <> " " <> uri.to_string(uri)
   })
 }
@@ -45,11 +49,15 @@ fn list(version version: String, directory directory: String) -> Nil {
 fn update(version version: String, directory directory: String) -> Nil {
   update_launcher(version:, directory:, on_update: fn(uri, from, to) {
     update_file(uri, from, to)
-    ansi.grey(from) <> " " <> ansi.green(from)
+    let from = filepath.base_name(from)
+    let to = filepath.base_name(to)
+    ansi.grey(from) <> " " <> ansi.green(to)
   })
 
   update_mods(version:, directory:, on_update: fn(uri, from, to) {
     update_file(uri, from, to)
+    let from = filepath.base_name(from)
+    let to = filepath.base_name(to)
     ansi.grey(from) <> " " <> ansi.green(to)
   })
 }
