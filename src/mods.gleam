@@ -125,8 +125,10 @@ fn update_mods(
     NotFound(from) -> ansi.grey(from)
     UpToDate(from) -> ansi.green(from)
 
-    Updated(from, update) ->
-      filepath.join(mods_directory, update.filename)
-      |> on_update(update.uri, from, _)
+    Updated(from, update) -> {
+      let from = filepath.join(mods_directory, from)
+      let to = filepath.join(mods_directory, update.filename)
+      on_update(update.uri, from, to)
+    }
   })
 }
