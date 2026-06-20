@@ -10,7 +10,7 @@ import gleam/list
 import gleam/option
 import gleam/pair
 import gleam/string
-import gleam/uri
+import gleam/uri.{type Uri}
 import gleam_community/ansi
 import mods/fabric
 import mods/modrinth
@@ -38,7 +38,7 @@ fn list(version version: String, directory directory: String) -> Nil {
   })
 
   update_mods(version:, directory:, on_update: fn(uri, from, to) {
-    ansi.grey(from) <> " " <> ansi.green(to) <> " " <> uri
+    ansi.grey(from) <> " " <> ansi.green(to) <> " " <> uri.to_string(uri)
   })
 }
 
@@ -49,7 +49,6 @@ fn update(version version: String, directory directory: String) -> Nil {
   })
 
   update_mods(version:, directory:, on_update: fn(uri, from, to) {
-    let assert Ok(uri) = uri.parse(uri)
     update_file(uri, from, to)
     ansi.grey(from) <> " " <> ansi.green(to)
   })
@@ -91,7 +90,7 @@ fn get_updates(
   [NotFound(name), ..updates]
 }
 
-fn update_file(uri: uri.Uri, from: String, to: String) -> Nil {
+fn update_file(uri: Uri, from: String, to: String) -> Nil {
   let assert Ok(request) = request.from_uri(uri)
   let request = request.set_body(request, option.None)
   let assert Ok(response) = httpc.send(request, [])
@@ -103,7 +102,7 @@ fn update_file(uri: uri.Uri, from: String, to: String) -> Nil {
 fn update_launcher(
   version version: String,
   directory directory: String,
-  on_update on_update: fn(uri.Uri, String, String) -> String,
+  on_update on_update: fn(Uri, String, String) -> String,
 ) -> Nil {
   let assert [from] = path.wildcard(directory, "fabric-server-*.jar")
   let #(uri, to) = fabric.get_launcher(version)
@@ -117,7 +116,7 @@ fn update_launcher(
 fn update_mods(
   version version: String,
   directory directory: String,
-  on_update on_update: fn(String, String, String) -> String,
+  on_update on_update: fn(Uri, String, String) -> String,
 ) -> Nil {
   let mods_directory = filepath.join(directory, "mods")
   use status <- list.each(get_updates(version:, directory: mods_directory))

@@ -6,11 +6,11 @@ import gleam/http/request
 import gleam/json
 import gleam/option
 import gleam/result
-import gleam/uri
+import gleam/uri.{type Uri}
 import muon/extra_erlang/httpc
 
 pub type File {
-  File(uri: String, filename: String, hash: String)
+  File(uri: Uri, filename: String, hash: String)
 }
 
 pub fn get_updates(
@@ -61,8 +61,17 @@ fn version_decoder() -> Decoder(Version) {
 }
 
 fn file_decoder() -> Decoder(File) {
-  use uri <- decode.field("url", decode.string)
+  use uri <- decode.field("url", uri_decoder())
   use filename <- decode.field("filename", decode.string)
   use hash <- decode.subfield(["hashes", "sha1"], decode.string)
   decode.success(File(filename:, uri:, hash:))
+}
+
+fn uri_decoder() -> Decoder(Uri) {
+  use string <- decode.then(decode.string)
+
+  case uri.parse(string) {
+    Error(Nil) -> decode.failure(uri.empty, "Uri")
+    Ok(uri) -> decode.success(uri)
+  }
 }
