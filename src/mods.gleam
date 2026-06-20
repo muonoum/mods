@@ -100,10 +100,14 @@ fn get_updates(
 
 fn update_file(from: String, uri: Uri, to: String) -> Nil {
   let assert Ok(request) = request.from_uri(uri)
-  let request = request.set_body(request, option.None)
-  let assert Ok(response) = httpc.send(request, [])
+
+  let assert Ok(response) =
+    request.set_body(request, option.None)
+    |> httpc.send([])
+
   let assert Ok(Nil) = simplifile.write_bits(to, response.body)
   let assert Ok(Nil) = simplifile.delete_file(from)
+
   Nil
 }
 
