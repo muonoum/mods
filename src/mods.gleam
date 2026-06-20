@@ -34,24 +34,24 @@ pub fn main() -> Nil {
 
 fn list(version version: String, directory directory: String) -> Nil {
   update_launcher(version:, directory:, on_update: fn(uri, from, to) {
-    string.join([ansi.grey(from), ansi.cyan(to), uri.to_string(uri)], " ")
+    ansi.grey(from) <> " " <> ansi.cyan(to) <> " " <> uri.to_string(uri)
   })
 
   update_mods(version:, directory:, on_update: fn(uri, from, to) {
-    string.join([ansi.grey(from), ansi.green(to), uri], " ")
+    ansi.grey(from) <> " " <> ansi.green(to) <> " " <> uri
   })
 }
 
 fn update(version version: String, directory directory: String) -> Nil {
   update_launcher(version:, directory:, on_update: fn(uri, from, to) {
     update_file(uri, from, to)
-    string.join([ansi.grey(from), ansi.green(from)], " ")
+    ansi.grey(from) <> " " <> ansi.green(from)
   })
 
   update_mods(version:, directory:, on_update: fn(uri, from, to) {
     let assert Ok(uri) = uri.parse(uri)
     update_file(uri, from, to)
-    string.join([ansi.grey(from), ansi.green(to)], " ")
+    ansi.grey(from) <> " " <> ansi.green(to)
   })
 }
 
