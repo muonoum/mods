@@ -118,16 +118,16 @@ fn update_mods(
   directory directory: String,
   on_update on_update: fn(Uri, String, String) -> String,
 ) -> Nil {
-  let mods_directory = filepath.join(directory, "mods")
-  use status <- list.each(get_updates(version:, directory: mods_directory))
+  let directory = filepath.join(directory, "mods")
+  use status <- list.each(get_updates(version:, directory: directory))
 
   io.println(case status {
     NotFound(from) -> ansi.grey(from)
     UpToDate(from) -> ansi.green(from)
 
     Updated(from, update) -> {
-      let from = filepath.join(mods_directory, from)
-      let to = filepath.join(mods_directory, update.filename)
+      let from = filepath.join(directory, from)
+      let to = filepath.join(directory, update.filename)
       on_update(update.uri, from, to)
     }
   })
