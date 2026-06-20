@@ -119,7 +119,7 @@ fn update_mods(
   on_update on_update: fn(Uri, String, String) -> String,
 ) -> Nil {
   let directory = filepath.join(directory, "mods")
-  use status <- list.each(get_updates(version:, directory: directory))
+  use status <- list.each(get_updates(version:, directory:))
 
   io.println(case status {
     NotFound(from) -> ansi.grey(from)
