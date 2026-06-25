@@ -108,7 +108,7 @@ fn update_launcher(
       on_update(from, uri, to)
       let from = filepath.base_name(from)
       let to = filepath.base_name(to)
-      ansi.grey(from) <> " " <> ansi.cyan(to) <> " " <> uri.to_string(uri)
+      ansi.cyan(to) <> " " <> ansi.grey(from)
     }
   })
 }
