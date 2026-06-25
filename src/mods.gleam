@@ -26,40 +26,18 @@ type Status {
 
 pub fn main() -> Nil {
   case argv.load().arguments {
-    ["list", version, directory] -> list(version:, directory:)
-    ["update", version, directory] -> update(version:, directory:)
+    ["list", version, directory] -> {
+      update_launcher(version:, directory:, on_update: dont_update)
+      update_mods(version:, directory:, on_update: dont_update)
+    }
+
+    ["update", version, directory] -> {
+      update_launcher(version:, directory:, on_update: update_file)
+      update_mods(version:, directory:, on_update: update_file)
+    }
+
     _else -> panic
   }
-}
-
-fn list(version version: String, directory directory: String) -> Nil {
-  update_launcher(version:, directory:, on_update: fn(from, uri, to) {
-    let from = filepath.base_name(from)
-    let to = filepath.base_name(to)
-    ansi.grey(from) <> " " <> ansi.cyan(to) <> " " <> uri.to_string(uri)
-  })
-
-  update_mods(version:, directory:, on_update: fn(from, uri, to) {
-    let from = filepath.base_name(from)
-    let to = filepath.base_name(to)
-    ansi.grey(from) <> " " <> ansi.green(to) <> " " <> uri.to_string(uri)
-  })
-}
-
-fn update(version version: String, directory directory: String) -> Nil {
-  update_launcher(version:, directory:, on_update: fn(from, uri, to) {
-    update_file(from, uri, to)
-    let from = filepath.base_name(from)
-    let to = filepath.base_name(to)
-    ansi.grey(from) <> " " <> ansi.green(to)
-  })
-
-  update_mods(version:, directory:, on_update: fn(from, uri, to) {
-    update_file(from, uri, to)
-    let from = filepath.base_name(from)
-    let to = filepath.base_name(to)
-    ansi.grey(from) <> " " <> ansi.green(to)
-  })
 }
 
 fn get_updates(
@@ -98,6 +76,10 @@ fn get_updates(
   [NotFound(name), ..updates]
 }
 
+fn dont_update(_from, _uri, _to) -> Nil {
+  Nil
+}
+
 fn update_file(from: String, uri: Uri, to: String) -> Nil {
   let assert Ok(request) = request.from_uri(uri)
 
@@ -114,21 +96,27 @@ fn update_file(from: String, uri: Uri, to: String) -> Nil {
 fn update_launcher(
   version version: String,
   directory directory: String,
-  on_update on_update: fn(String, Uri, String) -> String,
+  on_update on_update: fn(String, Uri, String) -> Nil,
 ) -> Nil {
   let assert [from] = path.wildcard(directory, "fabric-server-*.jar")
   let #(uri, to) = fabric.get_launcher(version)
 
   io.println(case from == to {
     True -> ansi.cyan(from)
-    False -> on_update(from, uri, to)
+
+    False -> {
+      on_update(from, uri, to)
+      let from = filepath.base_name(from)
+      let to = filepath.base_name(to)
+      ansi.grey(from) <> " " <> ansi.cyan(to) <> " " <> uri.to_string(uri)
+    }
   })
 }
 
 fn update_mods(
   version version: String,
   directory directory: String,
-  on_update on_update: fn(String, Uri, String) -> String,
+  on_update on_update: fn(String, Uri, String) -> Nil,
 ) -> Nil {
   let directory = filepath.join(directory, "mods")
   use status <- list.each(get_updates(version:, directory:))
@@ -138,9 +126,10 @@ fn update_mods(
     UpToDate(from) -> ansi.green(from)
 
     Updated(from, update) -> {
-      let from = filepath.join(directory, from)
-      let to = filepath.join(directory, update.filename)
-      on_update(from, update.uri, to)
+      on_update(from, update.uri, update.filename)
+      let from = filepath.base_name(from)
+      let to = filepath.base_name(update.filename)
+      ansi.green(to) <> " " <> ansi.grey(from)
     }
   })
 }
