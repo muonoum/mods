@@ -21,8 +21,8 @@ import simplifile
 type Status {
   NotFound(String)
   UpToDate(String)
-  Pending(String, modrinth.File)
-  Updated(String, modrinth.File)
+  Pending(String, String)
+  Updated(String, Uri, String)
 }
 
 pub fn main() -> Nil {
@@ -66,16 +66,16 @@ fn get_updates(
     dict.keys(existing)
     |> modrinth.get_updates(version)
 
-  use #(hash, name) <- list.map(dict.to_list(existing))
+  use #(hash, from) <- list.map(dict.to_list(existing))
 
   case dict.get(updated, hash) {
-    Error(Nil) -> NotFound(name)
+    Error(Nil) -> NotFound(from)
 
     Ok(version) -> {
       let assert [file] = version.files
-      use <- bool.guard(hash == file.hash, UpToDate(name))
-      use <- bool.guard(version.kind != "release", Pending(name, file))
-      Updated(name, file)
+      use <- bool.guard(hash == file.hash, UpToDate(from))
+      use <- bool.guard(version.kind != "release", Pending(from, file.filename))
+      Updated(from, file.uri, file.filename)
     }
   }
 }
@@ -123,17 +123,16 @@ fn update_mods(
   on_update on_update: fn(String, Uri, String) -> Nil,
 ) -> Nil {
   let directory = filepath.join(directory, "mods")
+  let join = filepath.join(directory, _)
   use status <- list.each(get_updates(version:, directory:))
 
   io.println(case status {
     NotFound(from) -> ansi.grey(from)
     UpToDate(from) -> ansi.green(from)
-    Pending(to, update) -> ansi.yellow(to) <> " " <> ansi.grey(update.filename)
+    Pending(from, to) -> ansi.yellow(to) <> " " <> ansi.grey(from)
 
-    Updated(from, update) -> {
-      on_update(from, update.uri, update.filename)
-      let from = filepath.base_name(from)
-      let to = filepath.base_name(update.filename)
+    Updated(from, uri, to) -> {
+      on_update(join(from), uri, join(to))
       ansi.green(to) <> " " <> ansi.grey(from)
     }
   })
