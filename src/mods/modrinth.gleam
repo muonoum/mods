@@ -9,6 +9,12 @@ import gleam/result
 import gleam/uri.{type Uri}
 import muon/extra_erlang/httpc
 
+const updates_uri = "https://api.modrinth.com/v2/version_files/update"
+
+pub type Version {
+  Version(kind: String, files: List(File))
+}
+
 pub type File {
   File(uri: Uri, filename: String, hash: String)
 }
@@ -16,7 +22,7 @@ pub type File {
 pub fn get_updates(
   hashes: List(String),
   game_version: String,
-) -> Dict(String, List(File)) {
+) -> Dict(String, Version) {
   let request = {
     let assert Ok(request) =
       uri.parse(updates_uri)
@@ -45,19 +51,13 @@ pub fn get_updates(
     |> json.parse_bits(response.body, _)
 
   use _hash, version <- dict.map_values(updates)
-  version.files
-}
-
-const updates_uri = "https://api.modrinth.com/v2/version_files/update"
-
-type Version {
-  UpdateResponse(version_type: String, files: List(File))
+  version
 }
 
 fn version_decoder() -> Decoder(Version) {
-  use version_type <- decode.field("version_type", decode.string)
+  use kind <- decode.field("version_type", decode.string)
   use files <- decode.field("files", decode.list(file_decoder()))
-  decode.success(UpdateResponse(version_type:, files:))
+  decode.success(Version(kind:, files:))
 }
 
 fn file_decoder() -> Decoder(File) {

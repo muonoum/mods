@@ -21,23 +21,29 @@ import simplifile
 type Status {
   NotFound(String)
   UpToDate(String)
+  Pending(String, modrinth.File)
   Updated(String, modrinth.File)
 }
 
 pub fn main() -> Nil {
   case argv.load().arguments {
-    ["list", version, directory] -> {
-      update_launcher(version:, directory:, on_update: dont_update)
-      update_mods(version:, directory:, on_update: dont_update)
-    }
+    ["list", version, directory] ->
+      update(version:, directory:, on_update: dont_update)
 
-    ["update", version, directory] -> {
-      update_launcher(version:, directory:, on_update: update_file)
-      update_mods(version:, directory:, on_update: update_file)
-    }
+    ["update", version, directory] ->
+      update(version:, directory:, on_update: update_file)
 
     _else -> panic
   }
+}
+
+fn update(
+  version version: String,
+  directory directory: String,
+  on_update on_update: fn(String, Uri, String) -> Nil,
+) -> Nil {
+  update_launcher(version:, directory:, on_update:)
+  update_mods(version:, directory:, on_update:)
 }
 
 fn get_updates(
@@ -60,20 +66,18 @@ fn get_updates(
     dict.keys(existing)
     |> modrinth.get_updates(version)
 
-  let updates = {
-    use #(hash, files) <- list.flat_map(dict.to_list(updated))
-    let assert Ok(original) = dict.get(existing, hash)
-    use file <- list.map(files)
+  use #(hash, name) <- list.map(dict.to_list(existing))
 
-    case hash == file.hash {
-      True -> UpToDate(original)
-      False -> Updated(original, file)
+  case dict.get(updated, hash) {
+    Error(Nil) -> NotFound(name)
+
+    Ok(version) -> {
+      let assert [file] = version.files
+      use <- bool.guard(hash == file.hash, UpToDate(name))
+      use <- bool.guard(version.kind != "release", Pending(name, file))
+      Updated(name, file)
     }
   }
-
-  use updates, hash, name <- dict.fold(existing, updates)
-  use <- bool.guard(dict.has_key(updated, hash), updates)
-  [NotFound(name), ..updates]
 }
 
 fn dont_update(_from, _uri, _to) -> Nil {
@@ -124,6 +128,7 @@ fn update_mods(
   io.println(case status {
     NotFound(from) -> ansi.grey(from)
     UpToDate(from) -> ansi.green(from)
+    Pending(to, update) -> ansi.yellow(to) <> " " <> ansi.grey(update.filename)
 
     Updated(from, update) -> {
       on_update(from, update.uri, update.filename)
