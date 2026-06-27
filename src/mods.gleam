@@ -20,9 +20,9 @@ import simplifile
 
 type Status {
   NotFound(String)
-  UpToDate(String)
-  Pending(String, String)
-  Updated(String, Uri, String)
+  UpToDate(name: String, kind: String)
+  Pending(from: String, to: String)
+  Updated(from: String, uri: Uri, to: String)
 }
 
 pub fn main() -> Nil {
@@ -73,9 +73,16 @@ fn get_updates(
 
     Ok(version) -> {
       let assert [file] = version.files
-      use <- bool.guard(hash == file.hash, UpToDate(from))
-      use <- bool.guard(version.kind != "release", Pending(from, file.filename))
-      Updated(from, file.uri, file.filename)
+
+      use <- bool.guard(
+        hash == file.hash,
+        UpToDate(name: from, kind: version.kind),
+      )
+
+      case version.kind {
+        "release" -> Updated(from:, uri: file.uri, to: file.filename)
+        _kind -> Pending(from:, to: file.filename)
+      }
     }
   }
 }
@@ -127,11 +134,14 @@ fn update_mods(
   use status <- list.each(get_updates(version:, directory:))
 
   io.println(case status {
-    NotFound(from) -> ansi.grey(from)
-    UpToDate(from) -> ansi.green(from)
-    Pending(from, to) -> ansi.yellow(to) <> " " <> ansi.grey(from)
+    NotFound(name) -> ansi.grey(name)
 
-    Updated(from, uri, to) -> {
+    UpToDate(name:, kind: "release") -> ansi.green(name)
+    UpToDate(name:, kind:) -> ansi.green(name) <> " " <> ansi.yellow(kind)
+
+    Pending(from:, to:) -> ansi.yellow(to) <> " " <> ansi.grey(from)
+
+    Updated(from:, uri:, to:) -> {
       on_update(join(from), uri, join(to))
       ansi.green(to) <> " " <> ansi.grey(from)
     }
