@@ -14,6 +14,7 @@ import gleam/uri.{type Uri}
 import gleam_community/ansi
 import mods/fabric
 import mods/modrinth
+import muon/extra/function.{return}
 import muon/extra_erlang/httpc
 import muon/extra_erlang/path
 import simplifile
@@ -21,7 +22,7 @@ import simplifile
 type Status {
   NotFound(String)
   UpToDate(name: String, kind: String)
-  Pending(from: String, to: String)
+  Pending(from: String, to: String, kind: String)
   Updated(from: String, uri: Uri, to: String)
 }
 
@@ -81,7 +82,7 @@ fn get_updates(
 
       case version.kind {
         "release" -> Updated(from:, uri: file.uri, to: file.filename)
-        _kind -> Pending(from:, to: file.filename)
+        kind -> Pending(from:, to: file.filename, kind:)
       }
     }
   }
@@ -110,18 +111,21 @@ fn update_launcher(
   on_update on_update: fn(String, Uri, String) -> Nil,
 ) -> Nil {
   let assert [from] = path.wildcard(directory, "fabric-server-*.jar")
+  let join = filepath.join(directory, _)
   let #(uri, to) = fabric.get_launcher(version)
+  use <- return(io.println)
+  use <- return(string.join(_, " "))
 
-  io.println(case from == to {
-    True -> ansi.cyan(from)
+  case from == to {
+    True -> [ansi.cyan(from)]
 
     False -> {
-      on_update(from, uri, to)
+      on_update(join(from), uri, join(to))
       let from = filepath.base_name(from)
       let to = filepath.base_name(to)
-      ansi.cyan(to) <> " " <> ansi.grey(from)
+      [ansi.grey(from), ansi.cyan(to)]
     }
-  })
+  }
 }
 
 fn update_mods(
@@ -132,18 +136,23 @@ fn update_mods(
   let directory = filepath.join(directory, "mods")
   let join = filepath.join(directory, _)
   use status <- list.each(get_updates(version:, directory:))
+  use <- return(io.println)
+  use <- return(string.join(_, " "))
 
-  io.println(case status {
-    NotFound(name) -> ansi.grey(name)
+  case status {
+    NotFound(name) -> [ansi.grey(name)]
+    UpToDate(name:, kind: "release") -> [ansi.green(name)]
+    UpToDate(name:, kind:) -> [ansi.green(name), ansi.yellow(kind)]
 
-    UpToDate(name:, kind: "release") -> ansi.green(name)
-    UpToDate(name:, kind:) -> ansi.green(name) <> " " <> ansi.yellow(kind)
-
-    Pending(from:, to:) -> ansi.yellow(to) <> " " <> ansi.grey(from)
+    Pending(from:, to:, kind:) -> [
+      ansi.green(from),
+      ansi.gray(to),
+      ansi.yellow(kind),
+    ]
 
     Updated(from:, uri:, to:) -> {
       on_update(join(from), uri, join(to))
-      ansi.green(to) <> " " <> ansi.grey(from)
+      [ansi.grey(from), ansi.green(to)]
     }
-  })
+  }
 }

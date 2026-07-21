@@ -55,6 +55,8 @@ pub fn get_updates(
 }
 
 fn version_decoder() -> Decoder(Version) {
+  use _project_id <- decode.field("project_id", decode.string)
+  use _dependencies <- decode.field("dependencies", decode.dynamic)
   use kind <- decode.field("version_type", decode.string)
   use files <- decode.field("files", decode.list(file_decoder()))
   decode.success(Version(kind:, files:))
