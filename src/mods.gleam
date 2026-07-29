@@ -14,9 +14,9 @@ import gleam/uri.{type Uri}
 import gleam_community/ansi
 import mods/fabric
 import mods/modrinth
-import muon/extra/function.{return}
-import muon/extra_erlang/httpc
-import muon/extra_erlang/path
+import muomono/extra/function.{return}
+import muomono/extra_erlang/httpc
+import muomono/extra_erlang/path
 import simplifile
 
 type Status {

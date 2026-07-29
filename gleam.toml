@@ -3,8 +3,8 @@ version = "1.0.0"
 
 [dependencies]
 gleam_stdlib = ">= 1.0.0 and < 2.0.0"
-extra_erlang = { path = "../muon/extra_erlang" }
-extra = { path = "../muon/extra" }
+extra_erlang = { path = "../muomono/extra_erlang" }
+extra = { path = "../muomono/extra" }
 gleam_json = ">= 3.1.0 and < 4.0.0"
 gleam_http = ">= 4.3.0 and < 5.0.0"
 gleam_crypto = ">= 1.6.0 and < 2.0.0"

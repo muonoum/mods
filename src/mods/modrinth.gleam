@@ -7,7 +7,7 @@ import gleam/json
 import gleam/option
 import gleam/result
 import gleam/uri.{type Uri}
-import muon/extra_erlang/httpc
+import muomono/extra_erlang/httpc
 
 const updates_uri = "https://api.modrinth.com/v2/version_files/update"
 

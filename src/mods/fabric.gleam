@@ -5,7 +5,7 @@ import gleam/option
 import gleam/result
 import gleam/string
 import gleam/uri.{type Uri}
-import muon/extra_erlang/httpc
+import muomono/extra_erlang/httpc
 
 pub fn get_launcher(game_version: String) -> #(Uri, String) {
   let loader_version = get_loader(game_version)
